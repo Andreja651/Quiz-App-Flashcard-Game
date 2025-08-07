@@ -1,0 +1,66 @@
+Test Case 1: Create a New Deck (Positive)
+• Precondition: User is logged in and on the deck creation page.
+• Steps:
+1. Enter valid title and optional description.
+2. Submit the form.
+• Expected Result: New deck is created and visible in the deck list.
+
+Test Case 2: Create a New Deck with Missing Title (Negative)
+• Precondition: User is logged in and on the deck creation page.
+• Steps:
+1. Leave the title field empty.
+2. Submit the form.
+• Expected Result: Validation error is shown; deck is not created.
+
+Test Case 3: Start Quiz Session with Valid Deck (Positive)
+• Precondition: Deck with cards exists.
+• Steps:
+1. Navigate to the study page for the deck.
+2. Quiz session is initialized.
+• Expected Result: Quiz session starts, first question is displayed.
+
+Test Case 4: Start Quiz Session with Empty Deck (Negative)
+• Precondition: Deck exists but has zero cards.
+• Steps:
+1. Navigate to study page for empty deck.
+• Expected Result: Message shown "Deck not found or empty," quiz cannot start.
+
+Test Case 5: Answer Question Correctly (Positive)
+• Precondition: Quiz session in progress.
+• Steps:
+1. Select correct answer for current question.
+2. Submit answer.
+• Expected Result: Score increments, next question is available.
+
+Test Case 6: Answer Question Incorrectly (Positive)
+• Precondition: Quiz session in progress.
+• Steps:
+1. Select incorrect answer.
+2. Submit answer.
+• Expected Result: Score remains unchanged, next question is available.
+
+Test Case 7: Set Invalid Timer Value (Negative)
+• Precondition: On study settings.
+• Steps:
+1. Enter a negative number or zero for time per question.
+• Expected Result: Input rejected or corrected; user warned.
+
+Test Case 8: Toggle Auto-Advance When Timed Mode is Off (Negative)
+• Precondition: Timed mode is off.
+• Steps:
+1. Attempt to enable auto-advance.
+• Expected Result: Auto-advance checkbox disabled or cannot be enabled.
+
+Test Case 9: Exit Quiz Early and Confirm Cancellation (Positive)
+• Precondition: Quiz session in progress.
+• Steps:
+1. Click exit button.
+2. Confirm exit prompt.
+• Expected Result: Quiz session ends; user redirected to dashboard.
+
+Test Case 10: Flag and Unflag a Card (Positive)
+• Precondition: Quiz session in progress.
+• Steps:
+1. Flag the current card.
+2. Unflag the same card.
+• Expected Result: Card flagged and unflagged successfully.
