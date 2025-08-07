@@ -1,0 +1,30 @@
+Project: Flash Card Quiz Application
+Tested By: Andreja Mihajlovski
+Date: 2025-07-12
+Test Environment:
+• Browser: Chrome 138.0.0.0 (Windows 10, 64-bit)
+• Backend: In-memory storage (MemStorage)
+• Platform: Desktop
+
+Overview
+This report summarizes the manual testing performed on the Flash Card Quiz application. The main goal was to validate core functionalities including deck management, quiz sessions, card interactions, and study settings.
+Testing Scope
+• Deck creation, update, deletion
+• Card retrieval and answer handling
+• Quiz session lifecycle (start, answer, complete)
+•	Study settings and timer behavior
+•	User interface flows and error handling
+
+Test Results Summary
+Test Area                Total Tests   Passed   Failed   Blocked   Remarks
+Deck Management          4             4        0        0         All deck operations passed
+Quiz Session Operations  5             5        0        0         Quiz lifecycle functions ok
+Card Answer Handling     3             3        0        0         Positive and negative cases
+Study Settings           3             3        0        0         Timer and auto-advance ok
+UI / UX Flows            2             2        0        0         Smooth navigation
+
+Summary
+• All critical and important functions worked as expected during manual testing.
+• No major bugs or issues encountered.
+• UI is responsive and intuitive for a test user.
+• Timed mode and auto-advance features function correctly.
