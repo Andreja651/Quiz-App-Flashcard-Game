@@ -1,0 +1,40 @@
+1. Deck Management
+• Create a new deck with valid details.
+• Edit an existing deck’s title and description.
+• Delete a deck and verify associated cards are also deleted.
+• View all decks and verify their details display correctly.
+
+2. Card Management
+• Add new cards to a deck with valid question and answer.
+• Edit an existing card’s content.
+• Delete a card from a deck.
+• View all cards within a deck.
+
+3. Quiz Session
+• Start a quiz session with a selected deck.
+• Answer questions correctly and verify score increments.
+• Answer questions incorrectly and verify score remains unchanged.
+• Skip questions and verify progression.
+• Flag and unflag cards.
+• Complete the quiz and verify final score and stats update.
+
+4. Study Settings
+• Toggle show explanations on and off.
+• Enable and disable timed mode.
+• Adjust time per question and verify timer updates.
+• Enable and disable auto-advance.
+• Enable and disable sound effects.
+
+5. UI & Navigation
+• Navigate from dashboard to study page.
+• Exit quiz early and confirm cancellation prompt.
+• Navigate back to dashboard after quiz completion.
+• Verify loading states for decks and cards.
+
+6. Edge Cases & Negative Scenarios
+• Attempt to start a quiz with an empty deck.
+• Try to create a deck or card with missing required fields.
+• Handle rapid answer submissions and navigation.
+• Invalid input for timer settings (e.g., negative or zero seconds).
+• Network/API failures (simulate errors and verify error handling).
+
