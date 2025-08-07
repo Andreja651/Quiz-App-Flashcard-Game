@@ -1,0 +1,99 @@
+import { useQuery } from "@tanstack/react-query";
+import { Plus, Layers, Brain, Trophy } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { DeckWithStats } from "@shared/schema";
+import DeckCard from "@/components/deck-card";
+import StatsCard from "@/components/stats-card";
+import { useLocation } from "wouter";
+
+export default function Dashboard() {
+  const [, setLocation] = useLocation();
+  
+  const { data: decks = [], isLoading } = useQuery<DeckWithStats[]>({
+    queryKey: ["/api/decks"],
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ["/api/stats"],
+  });
+
+  const handleCreateDeck = () => {
+    setLocation("/create");
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mb-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-3xl font-bold text-gray-900">My Flashcard Decks</h2>
+          <p className="text-gray-600 mt-1">Manage your study materials and track your progress</p>
+        </div>
+        <Button 
+          onClick={handleCreateDeck}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium flex items-center space-x-2 transition-colors"
+        >
+          <Plus className="h-4 w-4" />
+          <span>Create New Deck</span>
+        </Button>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <StatsCard
+          title="Total Decks"
+          value={stats?.totalDecks || decks.length}
+          icon={Layers}
+          color="blue"
+        />
+        <StatsCard
+          title="Cards Studied"
+          value={stats?.cardsStudied || 0}
+          icon={Brain}
+          color="emerald"
+        />
+        <StatsCard
+          title="Average Score"
+          value={stats?.averageScore ? `${stats.averageScore}%` : "0%"}
+          icon={Trophy}
+          color="amber"
+        />
+      </div>
+
+      {/* Deck Grid */}
+      {decks.length === 0 ? (
+        <Card className="text-center py-12">
+          <CardContent>
+            <div className="flex flex-col items-center space-y-4">
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                <Layers className="h-8 w-8 text-gray-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-medium text-gray-900">No decks yet</h3>
+                <p className="text-gray-600">Create your first flashcard deck to get started!</p>
+              </div>
+              <Button onClick={handleCreateDeck} className="mt-4">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Your First Deck
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {decks.map((deck) => (
+            <DeckCard key={deck.id} deck={deck} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

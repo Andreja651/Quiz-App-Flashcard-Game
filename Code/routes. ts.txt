@@ -1,0 +1,186 @@
+import type { Express } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { insertDeckSchema, insertCardSchema, insertQuizSessionSchema, insertCardProgressSchema } from "@shared/schema";
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // Deck routes
+  app.get("/api/decks", async (req, res) => {
+    try {
+      const decks = await storage.getDecksWithStats();
+      res.json(decks);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch decks" });
+    }
+  });
+
+  app.get("/api/decks/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deck = await storage.getDeck(id);
+      if (!deck) {
+        return res.status(404).json({ message: "Deck not found" });
+      }
+      res.json(deck);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch deck" });
+    }
+  });
+
+  app.post("/api/decks", async (req, res) => {
+    try {
+      const validatedData = insertDeckSchema.parse(req.body);
+      const deck = await storage.createDeck(validatedData);
+      res.status(201).json(deck);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid deck data" });
+    }
+  });
+
+  app.put("/api/decks/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertDeckSchema.partial().parse(req.body);
+      const deck = await storage.updateDeck(id, validatedData);
+      if (!deck) {
+        return res.status(404).json({ message: "Deck not found" });
+      }
+      res.json(deck);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid deck data" });
+    }
+  });
+
+  app.delete("/api/decks/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteDeck(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Deck not found" });
+      }
+      res.json({ message: "Deck deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete deck" });
+    }
+  });
+
+  // Card routes
+  app.get("/api/decks/:deckId/cards", async (req, res) => {
+    try {
+      const deckId = parseInt(req.params.deckId);
+      const cards = await storage.getCardsByDeck(deckId);
+      res.json(cards);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch cards" });
+    }
+  });
+
+  app.post("/api/cards", async (req, res) => {
+    try {
+      const validatedData = insertCardSchema.parse(req.body);
+      const card = await storage.createCard(validatedData);
+      res.status(201).json(card);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid card data" });
+    }
+  });
+
+  app.put("/api/cards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertCardSchema.partial().parse(req.body);
+      const card = await storage.updateCard(id, validatedData);
+      if (!card) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      res.json(card);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid card data" });
+    }
+  });
+
+  app.delete("/api/cards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const deleted = await storage.deleteCard(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Card not found" });
+      }
+      res.json({ message: "Card deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete card" });
+    }
+  });
+
+  // Quiz session routes
+  app.post("/api/quiz-sessions", async (req, res) => {
+    try {
+      const validatedData = insertQuizSessionSchema.parse(req.body);
+      const session = await storage.createQuizSession(validatedData);
+      res.status(201).json(session);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid session data" });
+    }
+  });
+
+  app.get("/api/quiz-sessions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = await storage.getQuizSessionWithProgress(id);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch session" });
+    }
+  });
+
+  app.put("/api/quiz-sessions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const validatedData = insertQuizSessionSchema.partial().parse(req.body);
+      const session = await storage.updateQuizSession(id, validatedData);
+      if (!session) {
+        return res.status(404).json({ message: "Session not found" });
+      }
+      res.json(session);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid session data" });
+    }
+  });
+
+  // Card progress routes
+  app.post("/api/card-progress", async (req, res) => {
+    try {
+      const validatedData = insertCardProgressSchema.parse(req.body);
+      const progress = await storage.createCardProgress(validatedData);
+      res.status(201).json(progress);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid progress data" });
+    }
+  });
+
+  // Statistics routes
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const stats = await storage.getOverallStats();
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch stats" });
+    }
+  });
+
+  app.get("/api/stats/deck/:deckId", async (req, res) => {
+    try {
+      const deckId = parseInt(req.params.deckId);
+      const stats = await storage.getDeckStats(deckId);
+      res.json(stats);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch deck stats" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}

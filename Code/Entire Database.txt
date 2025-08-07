@@ -1,0 +1,41 @@
+Frontend Files (client/src/)
+Main App Files:
+
+App.tsx - Main application with routing setup
+pages/dashboard.tsx - Homepage showing flashcard decks
+pages/study.tsx - Quiz interface with timer features (main study mode)
+pages/create.tsx - Create/edit decks and cards
+pages/progress.tsx - Study progress and statistics
+Components:
+
+components/quiz-question.tsx - Interactive quiz question component
+components/deck-card.tsx - Individual deck display cards
+components/navigation.tsx - App navigation
+components/stats-card.tsx - Statistics display cards
+Library Files:
+
+lib/types.ts - TypeScript types for frontend
+lib/queryClient.ts - API client configuration
+lib/utils.ts - Utility functions
+Backend Files (server/)
+Main Server Files:
+
+index.ts - Express server setup
+routes.ts - All API endpoints (decks, cards, sessions, stats)
+storage.ts - In-memory database with sample flashcard data
+vite.ts - Development server configuration
+Shared Files:
+shared/schema.ts - Database schema and TypeScript types
+Configuration Files:
+package.json - All dependencies and scripts
+vite.config.ts - Build configuration
+tailwind.config.ts - Styling configuration
+tsconfig.json - TypeScript configuration
+This is a complete full-stack flashcard application with:
+
+25+ Spanish vocabulary cards
+10+ chemistry basics cards
+Timer functionality with configurable time limits
+Study settings (shuffle, auto-advance, explanations)
+Progress tracking and statistics
+Multiple question types (flashcards, multiple choice, true/false, fill-in-blank)

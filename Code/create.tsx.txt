@@ -1,0 +1,574 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { insertDeckSchema, insertCardSchema, type Card, type Deck } from "@shared/schema";
+import { Button } from "@/components/ui/button";
+import { Card as UICard, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { Plus, Save, Trash2, Edit, ArrowLeft } from "lucide-react";
+import { z } from "zod";
+
+const cardFormSchema = insertCardSchema.extend({
+  options: z.array(z.string()).optional(),
+});
+
+type CardFormData = z.infer<typeof cardFormSchema>;
+
+export default function CreateDeck() {
+  const params = useParams();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const deckId = params.id ? parseInt(params.id) : null;
+  const isEditing = deckId !== null;
+
+  const [cards, setCards] = useState<Card[]>([]);
+  const [editingCard, setEditingCard] = useState<Card | null>(null);
+  const [cardType, setCardType] = useState<string>("flashcard");
+  const [cardOptions, setCardOptions] = useState<string[]>(["", "", "", ""]);
+
+  // Deck form
+  const deckForm = useForm({
+    resolver: zodResolver(insertDeckSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      category: "",
+    },
+  });
+
+  // Card form
+  const cardForm = useForm<CardFormData>({
+    resolver: zodResolver(cardFormSchema),
+    defaultValues: {
+      deckId: 0,
+      type: "flashcard",
+      question: "",
+      answer: "",
+      options: null,
+      explanation: "",
+    },
+  });
+
+  // Fetch existing deck if editing
+  const { data: existingDeck, isLoading: deckLoading } = useQuery({
+    queryKey: ["/api/decks", deckId],
+    enabled: isEditing,
+  });
+
+  const { data: existingCards = [] } = useQuery<Card[]>({
+    queryKey: ["/api/decks", deckId, "cards"],
+    enabled: isEditing,
+  });
+
+  // Update forms when data loads
+  useState(() => {
+    if (existingDeck) {
+      deckForm.reset({
+        title: existingDeck.title,
+        description: existingDeck.description || "",
+        category: existingDeck.category,
+      });
+    }
+    if (existingCards.length > 0) {
+      setCards(existingCards);
+    }
+  });
+
+  // Create deck mutation
+  const createDeckMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof insertDeckSchema>) => {
+      const response = await apiRequest("POST", "/api/decks", data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/decks"] });
+      toast({
+        title: "Success!",
+        description: "Deck created successfully.",
+      });
+      setLocation("/");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create deck. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update deck mutation
+  const updateDeckMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof insertDeckSchema>) => {
+      const response = await apiRequest("PUT", `/api/decks/${deckId}`, data);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/decks"] });
+      toast({
+        title: "Success!",
+        description: "Deck updated successfully.",
+      });
+      setLocation("/");
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update deck. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create card mutation
+  const createCardMutation = useMutation({
+    mutationFn: async (data: CardFormData) => {
+      const response = await apiRequest("POST", "/api/cards", data);
+      return response.json();
+    },
+    onSuccess: (newCard) => {
+      setCards([...cards, newCard]);
+      cardForm.reset();
+      setCardType("flashcard");
+      setCardOptions(["", "", "", ""]);
+      toast({
+        title: "Success!",
+        description: "Card added successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to add card. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update card mutation
+  const updateCardMutation = useMutation({
+    mutationFn: async (data: { id: number; card: Partial<CardFormData> }) => {
+      const response = await apiRequest("PUT", `/api/cards/${data.id}`, data.card);
+      return response.json();
+    },
+    onSuccess: (updatedCard) => {
+      setCards(cards.map(card => card.id === updatedCard.id ? updatedCard : card));
+      setEditingCard(null);
+      cardForm.reset();
+      setCardType("flashcard");
+      setCardOptions(["", "", "", ""]);
+      toast({
+        title: "Success!",
+        description: "Card updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update card. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Delete card mutation
+  const deleteCardMutation = useMutation({
+    mutationFn: async (cardId: number) => {
+      await apiRequest("DELETE", `/api/cards/${cardId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/decks", deckId, "cards"] });
+      toast({
+        title: "Success!",
+        description: "Card deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete card. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleDeckSubmit = (data: z.infer<typeof insertDeckSchema>) => {
+    if (isEditing) {
+      updateDeckMutation.mutate(data);
+    } else {
+      createDeckMutation.mutate(data);
+    }
+  };
+
+  const handleCardSubmit = (data: CardFormData) => {
+    const cardData = {
+      ...data,
+      deckId: deckId || 0,
+      type: cardType,
+      options: cardType === "multiple-choice" ? cardOptions.filter(opt => opt.trim() !== "") : null,
+    };
+
+    if (editingCard) {
+      updateCardMutation.mutate({ id: editingCard.id, card: cardData });
+    } else {
+      createCardMutation.mutate(cardData);
+    }
+  };
+
+  const handleEditCard = (card: Card) => {
+    setEditingCard(card);
+    setCardType(card.type);
+    cardForm.reset({
+      deckId: card.deckId,
+      type: card.type,
+      question: card.question,
+      answer: card.answer,
+      explanation: card.explanation || "",
+    });
+    
+    if (card.options) {
+      setCardOptions([...card.options, "", "", "", ""].slice(0, 4));
+    }
+  };
+
+  const handleDeleteCard = (cardId: number) => {
+    if (isEditing) {
+      deleteCardMutation.mutate(cardId);
+    } else {
+      setCards(cards.filter(card => card.id !== cardId));
+      toast({
+        title: "Success!",
+        description: "Card removed successfully.",
+      });
+    }
+  };
+
+  const handleClearCard = () => {
+    setEditingCard(null);
+    cardForm.reset();
+    setCardType("flashcard");
+    setCardOptions(["", "", "", ""]);
+  };
+
+  const getCardTypeLabel = (type: string) => {
+    switch (type) {
+      case "flashcard": return "Flashcard";
+      case "multiple-choice": return "Multiple Choice";
+      case "true-false": return "True/False";
+      case "fill-blank": return "Fill in the Blank";
+      default: return "Question";
+    }
+  };
+
+  const getCardTypeColor = (type: string) => {
+    switch (type) {
+      case "flashcard": return "bg-blue-100 text-blue-800";
+      case "multiple-choice": return "bg-emerald-100 text-emerald-800";
+      case "true-false": return "bg-purple-100 text-purple-800";
+      case "fill-blank": return "bg-amber-100 text-amber-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  if (deckLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto">
+      <div className="mb-8">
+        <div className="flex items-center space-x-4 mb-4">
+          <Button
+            onClick={() => setLocation("/")}
+            variant="outline"
+            size="sm"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Dashboard
+          </Button>
+        </div>
+        <h2 className="text-3xl font-bold text-gray-900 mb-2">
+          {isEditing ? "Edit Deck" : "Create New Deck"}
+        </h2>
+        <p className="text-gray-600">
+          {isEditing ? "Update your flashcard deck" : "Build your custom flashcard deck for effective studying"}
+        </p>
+      </div>
+
+      {/* Deck Information Form */}
+      <UICard className="shadow-sm border border-gray-200 mb-6">
+        <CardContent className="p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-4">Deck Information</h3>
+          <Form {...deckForm}>
+            <form onSubmit={deckForm.handleSubmit(handleDeckSubmit)} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <FormField
+                  control={deckForm.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Deck Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter deck name..." {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={deckForm.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category..." />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Programming">Programming</SelectItem>
+                          <SelectItem value="Languages">Languages</SelectItem>
+                          <SelectItem value="Science">Science</SelectItem>
+                          <SelectItem value="History">History</SelectItem>
+                          <SelectItem value="Mathematics">Mathematics</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <FormField
+                control={deckForm.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Describe your deck..." 
+                        rows={3}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="flex justify-end">
+                <Button 
+                  type="submit" 
+                  disabled={createDeckMutation.isPending || updateDeckMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isEditing ? "Update Deck" : "Save Deck Info"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </UICard>
+
+      {/* Flashcard Creation */}
+      <UICard className="shadow-sm border border-gray-200">
+        <CardContent className="p-6">
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-lg font-semibold text-gray-900">Flashcards</h3>
+            <Button
+              onClick={() => setCardType("flashcard")}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Card
+            </Button>
+          </div>
+
+          {/* Card Creation Form */}
+          <div className="border border-gray-200 rounded-lg p-6 mb-6">
+            <div className="flex items-center space-x-4 mb-4">
+              <h4 className="text-md font-medium text-gray-900">Card Type:</h4>
+              <RadioGroup value={cardType} onValueChange={setCardType}>
+                <div className="flex space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="flashcard" id="flashcard" />
+                    <Label htmlFor="flashcard" className="text-sm">Flashcard</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="multiple-choice" id="multiple-choice" />
+                    <Label htmlFor="multiple-choice" className="text-sm">Multiple Choice</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="true-false" id="true-false" />
+                    <Label htmlFor="true-false" className="text-sm">True/False</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="fill-blank" id="fill-blank" />
+                    <Label htmlFor="fill-blank" className="text-sm">Fill in the Blank</Label>
+                  </div>
+                </div>
+              </RadioGroup>
+            </div>
+
+            <Form {...cardForm}>
+              <form onSubmit={cardForm.handleSubmit(handleCardSubmit)} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <FormField
+                    control={cardForm.control}
+                    name="question"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Question/Front</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter your question..." 
+                            rows={4}
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={cardForm.control}
+                    name="answer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Answer/Back</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Enter the answer..." 
+                            rows={4}
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {cardType === "multiple-choice" && (
+                  <div className="space-y-4">
+                    <Label>Answer Options</Label>
+                    {cardOptions.map((option, index) => (
+                      <Input
+                        key={index}
+                        placeholder={`Option ${String.fromCharCode(65 + index)}`}
+                        value={option}
+                        onChange={(e) => {
+                          const newOptions = [...cardOptions];
+                          newOptions[index] = e.target.value;
+                          setCardOptions(newOptions);
+                        }}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <FormField
+                  control={cardForm.control}
+                  name="explanation"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Explanation (Optional)</FormLabel>
+                      <FormControl>
+                        <Textarea 
+                          placeholder="Add an explanation..." 
+                          rows={2}
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="flex justify-end space-x-3">
+                  <Button 
+                    type="button"
+                    onClick={handleClearCard}
+                    variant="outline"
+                  >
+                    Clear
+                  </Button>
+                  <Button 
+                    type="submit" 
+                    disabled={createCardMutation.isPending || updateCardMutation.isPending}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <Save className="h-4 w-4 mr-2" />
+                    {editingCard ? "Update Card" : "Save Card"}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+
+          {/* Created Cards List */}
+          {cards.length > 0 && (
+            <div className="space-y-4">
+              <h4 className="text-md font-medium text-gray-900">Created Cards ({cards.length})</h4>
+              
+              {cards.map((card, index) => (
+                <div key={card.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div className="flex justify-between items-start">
+                    <div className="flex-1">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Badge className={getCardTypeColor(card.type)}>
+                          {getCardTypeLabel(card.type)}
+                        </Badge>
+                        <span className="text-sm text-gray-500">Card #{index + 1}</span>
+                      </div>
+                      <p className="text-sm text-gray-900 mb-1">
+                        <strong>Q:</strong> {card.question}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        <strong>A:</strong> {card.answer}
+                      </p>
+                    </div>
+                    <div className="flex space-x-2">
+                      <Button
+                        onClick={() => handleEditCard(card)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-blue-600"
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        onClick={() => handleDeleteCard(card.id)}
+                        variant="ghost"
+                        size="sm"
+                        className="text-gray-400 hover:text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </UICard>
+    </div>
+  );
+}

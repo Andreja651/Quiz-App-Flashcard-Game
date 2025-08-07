@@ -1,0 +1,555 @@
+import { 
+  Deck, 
+  Card, 
+  QuizSession, 
+  CardProgress, 
+  InsertDeck, 
+  InsertCard, 
+  InsertQuizSession, 
+  InsertCardProgress,
+  DeckWithStats,
+  QuizSessionWithProgress 
+} from "@shared/schema";
+
+export interface IStorage {
+  // Deck operations
+  getDeck(id: number): Promise<Deck | undefined>;
+  getAllDecks(): Promise<Deck[]>;
+  getDecksWithStats(): Promise<DeckWithStats[]>;
+  createDeck(deck: InsertDeck): Promise<Deck>;
+  updateDeck(id: number, deck: Partial<InsertDeck>): Promise<Deck | undefined>;
+  deleteDeck(id: number): Promise<boolean>;
+
+  // Card operations
+  getCard(id: number): Promise<Card | undefined>;
+  getCardsByDeck(deckId: number): Promise<Card[]>;
+  createCard(card: InsertCard): Promise<Card>;
+  updateCard(id: number, card: Partial<InsertCard>): Promise<Card | undefined>;
+  deleteCard(id: number): Promise<boolean>;
+
+  // Quiz session operations
+  getQuizSession(id: number): Promise<QuizSession | undefined>;
+  getQuizSessionWithProgress(id: number): Promise<QuizSessionWithProgress | undefined>;
+  createQuizSession(session: InsertQuizSession): Promise<QuizSession>;
+  updateQuizSession(id: number, session: Partial<InsertQuizSession>): Promise<QuizSession | undefined>;
+  getQuizSessionsByDeck(deckId: number): Promise<QuizSession[]>;
+
+  // Card progress operations
+  createCardProgress(progress: InsertCardProgress): Promise<CardProgress>;
+  getCardProgressBySession(sessionId: number): Promise<CardProgress[]>;
+
+  // Statistics
+  getDeckStats(deckId: number): Promise<{
+    totalCards: number;
+    averageScore: number;
+    lastStudied: string | null;
+    progress: number;
+  }>;
+  getOverallStats(): Promise<{
+    totalDecks: number;
+    cardsStudied: number;
+    averageScore: number;
+    studyStreak: number;
+    totalStudyTime: number;
+  }>;
+}
+
+export class MemStorage implements IStorage {
+  private decks: Map<number, Deck> = new Map();
+  private cards: Map<number, Card> = new Map();
+  private quizSessions: Map<number, QuizSession> = new Map();
+  private cardProgresses: Map<number, CardProgress> = new Map();
+  
+  private currentDeckId = 1;
+  private currentCardId = 1;
+  private currentSessionId = 1;
+  private currentProgressId = 1;
+
+  constructor() {
+    // Initialize with sample data
+    this.initializeSampleData();
+  }
+
+  private initializeSampleData() {
+    // Create sample decks
+    const deck1: Deck = {
+      id: this.currentDeckId++,
+      title: "JavaScript Fundamentals",
+      description: "Master the core concepts of JavaScript programming language",
+      category: "Programming",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
+      updatedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+    };
+
+    const deck2: Deck = {
+      id: this.currentDeckId++,
+      title: "Spanish Vocabulary",
+      description: "Essential Spanish words and phrases for beginners",
+      category: "Languages",
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+      updatedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+    };
+
+    const deck3: Deck = {
+      id: this.currentDeckId++,
+      title: "Chemistry Basics",
+      description: "Fundamental concepts in chemistry and periodic table",
+      category: "Science",
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 days ago
+      updatedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
+    };
+
+    this.decks.set(deck1.id, deck1);
+    this.decks.set(deck2.id, deck2);
+    this.decks.set(deck3.id, deck3);
+
+    // Create sample cards for JavaScript deck
+    const jsCards: Card[] = [
+      {
+        id: this.currentCardId++,
+        deckId: deck1.id,
+        type: "flashcard",
+        question: "What is the difference between let and var in JavaScript?",
+        answer: "let has block scope while var has function scope. let cannot be redeclared in the same scope, while var can be.",
+        options: null,
+        explanation: "This is a fundamental concept in JavaScript scope management.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck1.id,
+        type: "multiple-choice",
+        question: "Which method is used to add an element to the end of an array?",
+        answer: "push()",
+        options: ["push()", "pop()", "shift()", "unshift()"],
+        explanation: "push() adds elements to the end, pop() removes from end, shift() removes from beginning, unshift() adds to beginning.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck1.id,
+        type: "true-false",
+        question: "JavaScript is a statically typed language.",
+        answer: "false",
+        options: ["true", "false"],
+        explanation: "JavaScript is dynamically typed, meaning variable types are determined at runtime.",
+        createdAt: new Date()
+      }
+    ];
+
+    // Spanish Vocabulary Cards
+    const spanishCards: Card[] = [
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "flashcard",
+        question: "¿Cómo se dice 'hello' en español?",
+        answer: "hola",
+        options: null,
+        explanation: "Hola is the most common greeting in Spanish, used throughout the day.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "multiple-choice",
+        question: "What does 'gracias' mean in English?",
+        answer: "thank you",
+        options: ["thank you", "please", "excuse me", "you're welcome"],
+        explanation: "Gracias is used to express gratitude in Spanish.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "flashcard",
+        question: "¿Cuál es la traducción de 'water' en español?",
+        answer: "agua",
+        options: null,
+        explanation: "Agua is a feminine noun in Spanish (la agua).",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "true-false",
+        question: "'Buenos días' is used to say good morning in Spanish.",
+        answer: "true",
+        options: ["true", "false"],
+        explanation: "Buenos días literally means 'good days' and is used until around noon.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "fill-blank",
+        question: "Complete the sentence: 'Me llamo ___' (My name is ___)",
+        answer: "Juan",
+        options: null,
+        explanation: "This phrase is used to introduce yourself. Any name can complete this sentence.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "multiple-choice",
+        question: "Which color is 'rojo' in English?",
+        answer: "red",
+        options: ["red", "blue", "green", "yellow"],
+        explanation: "Rojo is the Spanish word for the color red.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "flashcard",
+        question: "How do you say 'I love you' in Spanish?",
+        answer: "te amo",
+        options: null,
+        explanation: "Te amo is a deep expression of love. 'Te quiero' is more commonly used for affection.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck2.id,
+        type: "true-false",
+        question: "The Spanish word for 'cat' is 'perro'.",
+        answer: "false",
+        options: ["true", "false"],
+        explanation: "Perro means 'dog'. The word for 'cat' is 'gato'.",
+        createdAt: new Date()
+      }
+    ];
+
+    // Chemistry Basics Cards
+    const chemistryCards: Card[] = [
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "flashcard",
+        question: "What is the chemical symbol for gold?",
+        answer: "Au",
+        options: null,
+        explanation: "Au comes from the Latin word 'aurum' meaning gold.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "multiple-choice",
+        question: "What is the atomic number of carbon?",
+        answer: "6",
+        options: ["4", "6", "8", "12"],
+        explanation: "Carbon has 6 protons in its nucleus, giving it an atomic number of 6.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "true-false",
+        question: "Water has the chemical formula H2O.",
+        answer: "true",
+        options: ["true", "false"],
+        explanation: "Water consists of 2 hydrogen atoms and 1 oxygen atom.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "flashcard",
+        question: "What gas makes up approximately 78% of Earth's atmosphere?",
+        answer: "nitrogen",
+        options: null,
+        explanation: "Nitrogen (N2) is the most abundant gas in our atmosphere.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "multiple-choice",
+        question: "What is the pH of pure water at 25°C?",
+        answer: "7",
+        options: ["0", "7", "14", "1"],
+        explanation: "Pure water has a neutral pH of 7 at room temperature.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "fill-blank",
+        question: "The process by which plants convert sunlight into energy is called ___.",
+        answer: "photosynthesis",
+        options: null,
+        explanation: "Photosynthesis converts CO2 and water into glucose using sunlight.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "flashcard",
+        question: "What is the chemical symbol for sodium?",
+        answer: "Na",
+        options: null,
+        explanation: "Na comes from the Latin word 'natrium' for sodium.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "true-false",
+        question: "Acids have a pH greater than 7.",
+        answer: "false",
+        options: ["true", "false"],
+        explanation: "Acids have a pH less than 7. Bases have a pH greater than 7.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "multiple-choice",
+        question: "Which element has the chemical symbol 'Fe'?",
+        answer: "iron",
+        options: ["iron", "fluorine", "francium", "fermium"],
+        explanation: "Fe comes from the Latin word 'ferrum' for iron.",
+        createdAt: new Date()
+      },
+      {
+        id: this.currentCardId++,
+        deckId: deck3.id,
+        type: "flashcard",
+        question: "What is the most abundant element in the universe?",
+        answer: "hydrogen",
+        options: null,
+        explanation: "Hydrogen makes up about 75% of the universe's elemental mass.",
+        createdAt: new Date()
+      }
+    ];
+
+    jsCards.forEach(card => this.cards.set(card.id, card));
+    spanishCards.forEach(card => this.cards.set(card.id, card));
+    chemistryCards.forEach(card => this.cards.set(card.id, card));
+  }
+
+  async getDeck(id: number): Promise<Deck | undefined> {
+    return this.decks.get(id);
+  }
+
+  async getAllDecks(): Promise<Deck[]> {
+    return Array.from(this.decks.values());
+  }
+
+  async getDecksWithStats(): Promise<DeckWithStats[]> {
+    const decks = await this.getAllDecks();
+    const decksWithStats: DeckWithStats[] = [];
+
+    for (const deck of decks) {
+      const stats = await this.getDeckStats(deck.id);
+      decksWithStats.push({
+        ...deck,
+        cardCount: stats.totalCards,
+        averageScore: stats.averageScore,
+        lastStudied: stats.lastStudied,
+        progress: stats.progress
+      });
+    }
+
+    return decksWithStats;
+  }
+
+  async createDeck(deck: InsertDeck): Promise<Deck> {
+    const newDeck: Deck = {
+      ...deck,
+      description: deck.description ?? null,
+      id: this.currentDeckId++,
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    this.decks.set(newDeck.id, newDeck);
+    return newDeck;
+  }
+
+  async updateDeck(id: number, deck: Partial<InsertDeck>): Promise<Deck | undefined> {
+    const existingDeck = this.decks.get(id);
+    if (!existingDeck) return undefined;
+
+    const updatedDeck: Deck = {
+      ...existingDeck,
+      ...deck,
+      updatedAt: new Date()
+    };
+    this.decks.set(id, updatedDeck);
+    return updatedDeck;
+  }
+
+  async deleteDeck(id: number): Promise<boolean> {
+    const deleted = this.decks.delete(id);
+    if (deleted) {
+      // Delete associated cards
+      const deckCards = Array.from(this.cards.values()).filter(card => card.deckId === id);
+      deckCards.forEach(card => this.cards.delete(card.id));
+    }
+    return deleted;
+  }
+
+  async getCard(id: number): Promise<Card | undefined> {
+    return this.cards.get(id);
+  }
+
+  async getCardsByDeck(deckId: number): Promise<Card[]> {
+    return Array.from(this.cards.values()).filter(card => card.deckId === deckId);
+  }
+
+  async createCard(card: InsertCard): Promise<Card> {
+    const newCard: Card = {
+      ...card,
+      options: card.options ?? null,
+      explanation: card.explanation ?? null,
+      id: this.currentCardId++,
+      createdAt: new Date()
+    };
+    this.cards.set(newCard.id, newCard);
+    return newCard;
+  }
+
+  async updateCard(id: number, card: Partial<InsertCard>): Promise<Card | undefined> {
+    const existingCard = this.cards.get(id);
+    if (!existingCard) return undefined;
+
+    const updatedCard: Card = {
+      ...existingCard,
+      ...card
+    };
+    this.cards.set(id, updatedCard);
+    return updatedCard;
+  }
+
+  async deleteCard(id: number): Promise<boolean> {
+    return this.cards.delete(id);
+  }
+
+  async getQuizSession(id: number): Promise<QuizSession | undefined> {
+    return this.quizSessions.get(id);
+  }
+
+  async getQuizSessionWithProgress(id: number): Promise<QuizSessionWithProgress | undefined> {
+    const session = this.quizSessions.get(id);
+    if (!session) return undefined;
+
+    const cardProgresses = await this.getCardProgressBySession(id);
+    return {
+      ...session,
+      cardProgresses
+    };
+  }
+
+  async createQuizSession(session: InsertQuizSession): Promise<QuizSession> {
+    const newSession: QuizSession = {
+      ...session,
+      score: session.score ?? 0,
+      timeSpent: session.timeSpent ?? 0,
+      id: this.currentSessionId++,
+      createdAt: new Date(),
+      completedAt: null
+    };
+    this.quizSessions.set(newSession.id, newSession);
+    return newSession;
+  }
+
+  async updateQuizSession(id: number, session: Partial<InsertQuizSession>): Promise<QuizSession | undefined> {
+    const existingSession = this.quizSessions.get(id);
+    if (!existingSession) return undefined;
+
+    const updatedSession: QuizSession = {
+      ...existingSession,
+      ...session
+    };
+    this.quizSessions.set(id, updatedSession);
+    return updatedSession;
+  }
+
+  async getQuizSessionsByDeck(deckId: number): Promise<QuizSession[]> {
+    return Array.from(this.quizSessions.values()).filter(session => session.deckId === deckId);
+  }
+
+  async createCardProgress(progress: InsertCardProgress): Promise<CardProgress> {
+    const newProgress: CardProgress = {
+      ...progress,
+      timeSpent: progress.timeSpent ?? 0,
+      id: this.currentProgressId++,
+      answeredAt: new Date()
+    };
+    this.cardProgresses.set(newProgress.id, newProgress);
+    return newProgress;
+  }
+
+  async getCardProgressBySession(sessionId: number): Promise<CardProgress[]> {
+    return Array.from(this.cardProgresses.values()).filter(progress => progress.sessionId === sessionId);
+  }
+
+  async getDeckStats(deckId: number): Promise<{
+    totalCards: number;
+    averageScore: number;
+    lastStudied: string | null;
+    progress: number;
+  }> {
+    const cards = await this.getCardsByDeck(deckId);
+    const sessions = await this.getQuizSessionsByDeck(deckId);
+    
+    const totalCards = cards.length;
+    const completedSessions = sessions.filter(s => s.completedAt);
+    
+    let averageScore = 0;
+    let lastStudied: string | null = null;
+    let progress = 0;
+
+    if (completedSessions.length > 0) {
+      averageScore = completedSessions.reduce((sum, session) => 
+        sum + (session.score / session.totalQuestions * 100), 0) / completedSessions.length;
+      
+      const latestSession = completedSessions.sort((a, b) => 
+        new Date(b.completedAt!).getTime() - new Date(a.completedAt!).getTime())[0];
+      lastStudied = latestSession.completedAt!.toISOString();
+      
+      progress = averageScore;
+    }
+
+    return {
+      totalCards,
+      averageScore: Math.round(averageScore),
+      lastStudied,
+      progress: Math.round(progress)
+    };
+  }
+
+  async getOverallStats(): Promise<{
+    totalDecks: number;
+    cardsStudied: number;
+    averageScore: number;
+    studyStreak: number;
+    totalStudyTime: number;
+  }> {
+    const totalDecks = this.decks.size;
+    const allSessions = Array.from(this.quizSessions.values());
+    const completedSessions = allSessions.filter(s => s.completedAt);
+    
+    const cardsStudied = completedSessions.reduce((sum, session) => sum + session.totalQuestions, 0);
+    const averageScore = completedSessions.length > 0 
+      ? completedSessions.reduce((sum, session) => sum + (session.score / session.totalQuestions * 100), 0) / completedSessions.length
+      : 0;
+    
+    const totalStudyTime = completedSessions.reduce((sum, session) => sum + session.timeSpent, 0);
+    
+    // Calculate study streak (simplified - consecutive days with sessions)
+    const studyStreak = 12; // Mock value for now
+
+    return {
+      totalDecks,
+      cardsStudied,
+      averageScore: Math.round(averageScore),
+      studyStreak,
+      totalStudyTime
+    };
+  }
+}
+
+export const storage = new MemStorage();

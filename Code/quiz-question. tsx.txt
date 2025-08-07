@@ -1,0 +1,206 @@
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Card as CardType } from "@shared/schema";
+import { useState } from "react";
+import { ChevronLeft, ChevronRight, Flag, SkipForward } from "lucide-react";
+
+interface QuizQuestionProps {
+  card: CardType;
+  questionNumber: number;
+  totalQuestions: number;
+  onAnswer: (answer: string) => void;
+  onNext: () => void;
+  onPrevious: () => void;
+  onSkip: () => void;
+  onFlag: () => void;
+  canGoNext: boolean;
+  canGoPrevious: boolean;
+}
+
+export default function QuizQuestion({
+  card,
+  questionNumber,
+  totalQuestions,
+  onAnswer,
+  onNext,
+  onPrevious,
+  onSkip,
+  onFlag,
+  canGoNext,
+  canGoPrevious
+}: QuizQuestionProps) {
+  const [selectedAnswer, setSelectedAnswer] = useState<string>("");
+  const [fillInAnswer, setFillInAnswer] = useState<string>("");
+
+  const handleAnswerChange = (answer: string) => {
+    setSelectedAnswer(answer);
+    onAnswer(answer);
+  };
+
+  const handleFillInChange = (answer: string) => {
+    setFillInAnswer(answer);
+    onAnswer(answer);
+  };
+
+  const getCardTypeLabel = (type: string) => {
+    switch (type) {
+      case "flashcard": return "Flashcard";
+      case "multiple-choice": return "Multiple Choice";
+      case "true-false": return "True/False";
+      case "fill-blank": return "Fill in the Blank";
+      default: return "Question";
+    }
+  };
+
+  const getCardTypeColor = (type: string) => {
+    switch (type) {
+      case "flashcard": return "bg-blue-100 text-blue-800";
+      case "multiple-choice": return "bg-emerald-100 text-emerald-800";
+      case "true-false": return "bg-purple-100 text-purple-800";
+      case "fill-blank": return "bg-amber-100 text-amber-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const renderQuestionInput = () => {
+    switch (card.type) {
+      case "multiple-choice":
+        return (
+          <RadioGroup value={selectedAnswer} onValueChange={handleAnswerChange}>
+            <div className="space-y-3">
+              {card.options?.map((option, index) => (
+                <div 
+                  key={index}
+                  className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                >
+                  <RadioGroupItem value={option} id={`option-${index}`} className="mr-3" />
+                  <Label 
+                    htmlFor={`option-${index}`} 
+                    className="text-gray-900 cursor-pointer flex-1"
+                  >
+                    {String.fromCharCode(65 + index)}) {option}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </RadioGroup>
+        );
+      
+      case "true-false":
+        return (
+          <RadioGroup value={selectedAnswer} onValueChange={handleAnswerChange}>
+            <div className="space-y-3">
+              <div className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                <RadioGroupItem value="true" id="true" className="mr-3" />
+                <Label htmlFor="true" className="text-gray-900 cursor-pointer flex-1">
+                  True
+                </Label>
+              </div>
+              <div className="flex items-center p-4 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors">
+                <RadioGroupItem value="false" id="false" className="mr-3" />
+                <Label htmlFor="false" className="text-gray-900 cursor-pointer flex-1">
+                  False
+                </Label>
+              </div>
+            </div>
+          </RadioGroup>
+        );
+      
+      case "fill-blank":
+        return (
+          <div className="space-y-4">
+            <Label htmlFor="fill-answer" className="text-sm font-medium text-gray-700">
+              Your Answer:
+            </Label>
+            <Input
+              id="fill-answer"
+              type="text"
+              value={fillInAnswer}
+              onChange={(e) => handleFillInChange(e.target.value)}
+              placeholder="Type your answer here..."
+              className="w-full"
+            />
+          </div>
+        );
+      
+      case "flashcard":
+        return (
+          <div className="p-6 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <p className="text-gray-600 text-center">
+              Think about your answer, then click "Next" to see the correct answer.
+            </p>
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Card className="shadow-sm border border-gray-200">
+      <CardContent className="p-8">
+        <div className="mb-6">
+          <div className="flex items-center space-x-2 mb-4">
+            <Badge className={getCardTypeColor(card.type)}>
+              {getCardTypeLabel(card.type)}
+            </Badge>
+            <span className="text-sm text-gray-500">
+              Question {questionNumber} of {totalQuestions}
+            </span>
+          </div>
+          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+            {card.question}
+          </h3>
+        </div>
+
+        <div className="mb-6">
+          {renderQuestionInput()}
+        </div>
+
+        <div className="flex justify-between items-center pt-6 border-t border-gray-200">
+          <div className="flex space-x-4">
+            <Button 
+              onClick={onSkip}
+              variant="outline"
+              className="text-gray-700"
+            >
+              <SkipForward className="h-4 w-4 mr-2" />
+              Skip Question
+            </Button>
+            <Button 
+              onClick={onFlag}
+              variant="outline"
+              className="text-amber-700 border-amber-200 hover:bg-amber-50"
+            >
+              <Flag className="h-4 w-4 mr-2" />
+              Mark for Review
+            </Button>
+          </div>
+          <div className="flex space-x-3">
+            <Button 
+              onClick={onPrevious}
+              disabled={!canGoPrevious}
+              variant="outline"
+            >
+              <ChevronLeft className="h-4 w-4 mr-2" />
+              Previous
+            </Button>
+            <Button 
+              onClick={onNext}
+              disabled={!canGoNext}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Next
+              <ChevronRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

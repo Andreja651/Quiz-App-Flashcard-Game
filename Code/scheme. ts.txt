@@ -1,0 +1,88 @@
+import { pgTable, text, serial, integer, boolean, timestamp, json } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+export const decks = pgTable("decks", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const cards = pgTable("cards", {
+  id: serial("id").primaryKey(),
+  deckId: integer("deck_id").notNull(),
+  type: text("type").notNull(), // 'flashcard', 'multiple-choice', 'true-false', 'fill-blank'
+  question: text("question").notNull(),
+  answer: text("answer").notNull(),
+  options: json("options"), // For multiple choice questions
+  explanation: text("explanation"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const quizSessions = pgTable("quiz_sessions", {
+  id: serial("id").primaryKey(),
+  deckId: integer("deck_id").notNull(),
+  score: integer("score").notNull().default(0),
+  totalQuestions: integer("total_questions").notNull(),
+  completedAt: timestamp("completed_at"),
+  timeSpent: integer("time_spent").notNull().default(0), // in seconds
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const cardProgress = pgTable("card_progress", {
+  id: serial("id").primaryKey(),
+  cardId: integer("card_id").notNull(),
+  sessionId: integer("session_id").notNull(),
+  isCorrect: boolean("is_correct").notNull(),
+  timeSpent: integer("time_spent").notNull().default(0), // in seconds
+  answeredAt: timestamp("answered_at").defaultNow().notNull(),
+});
+
+// Insert schemas
+export const insertDeckSchema = createInsertSchema(decks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCardSchema = createInsertSchema(cards).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertQuizSessionSchema = createInsertSchema(quizSessions).omit({
+  id: true,
+  createdAt: true,
+  completedAt: true,
+});
+
+export const insertCardProgressSchema = createInsertSchema(cardProgress).omit({
+  id: true,
+  answeredAt: true,
+});
+
+// Types
+export type Deck = typeof decks.$inferSelect;
+export type Card = typeof cards.$inferSelect;
+export type QuizSession = typeof quizSessions.$inferSelect;
+export type CardProgress = typeof cardProgress.$inferSelect;
+
+export type InsertDeck = z.infer<typeof insertDeckSchema>;
+export type InsertCard = z.infer<typeof insertCardSchema>;
+export type InsertQuizSession = z.infer<typeof insertQuizSessionSchema>;
+export type InsertCardProgress = z.infer<typeof insertCardProgressSchema>;
+
+// Extended types for frontend
+export type DeckWithStats = Deck & {
+  cardCount: number;
+  averageScore: number;
+  lastStudied: string | null;
+  progress: number;
+};
+
+export type QuizSessionWithProgress = QuizSession & {
+  cardProgresses: CardProgress[];
+};
