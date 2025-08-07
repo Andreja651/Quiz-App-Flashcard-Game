@@ -1,0 +1,31 @@
+Project: Flash Card Quiz App
+Tester: Andreja Mihajlovski
+Test Period: [Insert test start date] – [Insert test end date]
+Environment: Desktop Browser (Chrome 138.0.0.0 on Windows 10)
+
+Summary
+Testing for the Flash Card Quiz App has been completed. The focus was on validating core functionality related to deck and card management, quiz sessions, progress tracking, and user interaction with quiz questions. Both positive and negative scenarios were covered to ensure reliability from a customer perspective.
+
+Test Coverage
+• Deck creation, updating, deletion
+• Card CRUD operations
+• Quiz session lifecycle (creation, progress updates, completion)
+• Quiz interaction flows (answering, skipping, flagging)
+• UI components and settings (timed mode, shuffle, auto-advance)
+• Handling of invalid inputs and error cases
+
+
+Defects
+• 7 bugs were reported, categorized by severity and status. Most bugs have been addressed or mitigated; remaining minor issues are noted for future improvements.
+
+Risks & Issues
+• Some edge cases related to timed mode and auto-advance require further testing in a real user environment.
+• Limited testing on mobile devices; UI responsiveness to be evaluated later.
+
+Recommendations
+• Perform regression testing after bug fixes.
+• Extend tests to cover multi-user scenarios and data persistence.
+• Monitor user feedback post-deployment for unexpected issues.
+
+Conclusion
+Testing objectives have been met with sufficient coverage and documented results. The application is ready for staging deployment and further user acceptance testing.
