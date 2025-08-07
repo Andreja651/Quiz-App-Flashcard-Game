@@ -1,0 +1,33 @@
+Overview
+The Flashcard Quiz App is a simple and interactive web application that helps users learn and memorize information using flashcards and quizzes. It supports multiple question types, study modes, and tracks user progress with detailed statistics.
+Features
+• Create, update, and delete decks of flashcards.
+• Support for various question types: flashcard, multiple-choice, true/false, fill-in-the-blank.
+• Study mode with optional timed questions and automatic progression.
+• Shuffle questions for varied study sessions.
+• Track quiz progress, score, and study time.
+• Flag cards for review.
+• View deck and overall statistics.
+Technologies Used
+• React (with hooks) for UI
+• Wouter for routing
+• TanStack Query for data fetching and caching
+• TypeScript for type safety
+• Custom in-memory storage implementation (MemStorage) to simulate backend
+Testing
+This project is primarily designed for manual testing to evaluate different testing techniques from a customer perspective.
+Getting Started
+1. Clone the repository:
+bash
+CopyEdit
+git clone https://github.com/Andreja651/Quiz-App-Flashcard-Game/new
+2. Install dependencies:
+bash
+CopyEdit
+npm install
+3. Start the development server:
+bash
+CopyEdit
+npm run dev
+4. Open your browser and navigate to http://localhost:3000 to start using the app.
+5. https://lovable.dev/projects/b77fd0be-111d-4f2a-b3bd-30a8234f99c4?magic_link=mc_f4381dd6-8b33-4d4f-8ca4-36e99b6e9cea
